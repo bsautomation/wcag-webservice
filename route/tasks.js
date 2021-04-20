@@ -22,116 +22,120 @@ const {isValidAction} = require('pa11y');
 
 // Routes relating to all tasks
 module.exports = function(app) {
-	const model = app.model;
-	const server = app.server;
+  const model = app.model;
+  const server = app.server;
 
-	// Get all tasks
-	server.route({
-		method: 'GET',
-		path: '/tasks',
-		handler: async (request, reply) => {
-			let tasks = await model.task.getAll();
+  // Get all tasks
+  server.route({
+    method: 'GET',
+    path: '/tasks',
+    handler: async (request, reply) => {
+      let tasks = await model.task.getAll();
 
-			if (!tasks) {
-				return reply.response().code(500);
-			}
-			if (request.query.lastres) {
-				const results = await model.result.getAll({});
-				if (!results) {
-					return reply.response().code(500);
-				}
-				const resultsByTask = _.groupBy(results, 'task');
-				tasks = tasks.map(task => {
-					if (resultsByTask[task.id] && resultsByTask[task.id].length) {
-						task.last_result = resultsByTask[task.id][0];
-					} else {
-						task.last_result = null;
-					}
-					return task;
-				});
-			}
+      if (!tasks) {
+        return reply.response().code(500);
+      }
+      if (request.query.lastres) {
+        const results = await model.result.getAll({});
+        if (!results) {
+          return reply.response().code(500);
+        }
+        const resultsByTask = _.groupBy(results, 'task');
+        tasks = tasks.map(task => {
+          if (resultsByTask[task.id] && resultsByTask[task.id].length) {
+            task.last_result = resultsByTask[task.id][0];
+          } else {
+            task.last_result = null;
+          }
+          return task;
+        });
+      }
 
-			return reply.response(tasks).code(200);
-		},
-		options: {
-			validate: {
-				query: Joi.object({
-					lastres: Joi.boolean()
-				}),
-				payload: false
-			}
-		}
-	});
+      return reply.response(tasks).code(200);
+    },
+    options: {
+      validate: {
+        query: Joi.object({
+          lastres: Joi.boolean()
+        }),
+        payload: false
+      }
+    }
+  });
 
-	// Create a task
-	server.route({
-		method: 'POST',
-		path: '/tasks',
-		handler: async (request, reply) => {
-			if (request.payload.actions && request.payload.actions.length) {
-				for (let action of request.payload.actions) {
-					if (!isValidAction(action)) {
-						return reply.response(`Invalid action: "${action}"`).code(400);
-					}
-				}
-			}
+  // Create a task
+  server.route({
+    method: 'POST',
+    path: '/tasks',
+    handler: async (request, reply) => {
+      if (request.payload.actions && request.payload.actions.length) {
+        for (let action of request.payload.actions) {
+          if (!isValidAction(action)) {
+            return reply.response(`Invalid action: "${action}"`).code(400);
+          }
+        }
+      }
+      console.log(request.payload);
+      const task = await model.task.create(request.payload);
 
-			const task = await model.task.create(request.payload);
+      if (!task) {
+        return reply.response().code(500);
+      }
 
-			if (!task) {
-				return reply.response().code(500);
-			}
+      return reply.response(task)
+        .header('Location', `http://${request.info.host}/tasks/${task.id}`)
+        .code(201);
+    },
+    options: {
+      validate: {
+        query: {},
+        payload: Joi.object({
+          module: Joi.string().required(),
+          build_no: Joi.number().integer(),
+          env: Joi.string().required(),
+          name: Joi.string().required(),
+          functionality: Joi.string().allow(''),
+          timeout: Joi.number().integer(),
+          wait: Joi.number().integer(),
+          url: Joi.string().required(),
+          username: Joi.string().allow(''),
+          password: Joi.string().allow(''),
+          standard: Joi.string().required().valid(
+            'Section508',
+            'WCAG2A',
+            'WCAG2AA',
+            'WCAG2AAA'
+          ),
+          ignore: Joi.array(),
+          actions: Joi.array().items(Joi.string()),
+          hideElements: Joi.string().allow(''),
+          headers: [
+            Joi.string().allow(''),
+            Joi.object().pattern(/.*/, Joi.string().allow(''))
+          ]
+        })
+      }
+    }
+  });
 
-			return reply.response(task)
-				.header('Location', `http://${request.info.host}/tasks/${task.id}`)
-				.code(201);
-		},
-		options: {
-			validate: {
-				query: {},
-				payload: Joi.object({
-					name: Joi.string().required(),
-					timeout: Joi.number().integer(),
-					wait: Joi.number().integer(),
-					url: Joi.string().required(),
-					username: Joi.string().allow(''),
-					password: Joi.string().allow(''),
-					standard: Joi.string().required().valid(
-						'Section508',
-						'WCAG2A',
-						'WCAG2AA',
-						'WCAG2AAA'
-					),
-					ignore: Joi.array(),
-					actions: Joi.array().items(Joi.string()),
-					hideElements: Joi.string().allow(''),
-					headers: [
-						Joi.string().allow(''),
-						Joi.object().pattern(/.*/, Joi.string().allow(''))
-					]
-				})
-			}
-		}
-	});
-
-	// Get results for all tasks
-	server.route({
-		method: 'GET',
-		path: '/tasks/results',
-		handler: async (request, reply) => {
-			const results = await model.result.getAll(request.query);
-			return reply.response(results).code(200);
-		},
-		options: {
-			validate: {
-				query: Joi.object({
-					from: Joi.string().isoDate(),
-					to: Joi.string().isoDate(),
-					full: Joi.boolean()
-				}),
-				payload: false
-			}
-		}
-	});
+  // Get results for all tasks
+  server.route({
+    method: 'GET',
+    path: '/tasks/results',
+    handler: async (request, reply) => {
+      const results = await model.result.getAll(request.query);
+      return reply.response(results).code(200);
+    },
+    options: {
+      validate: {
+        query: Joi.object({
+          from: Joi.string().isoDate(),
+          to: Joi.string().isoDate(),
+          full: Joi.boolean()
+        }),
+        payload: false
+      }
+    }
+  });
 
 };

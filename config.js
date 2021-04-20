@@ -18,28 +18,30 @@ const fs = require('fs');
 const jsonPath = `./config/${process.env.NODE_ENV || 'development'}.json`;
 
 if (fs.existsSync(jsonPath)) {
-	const jsonConfig = require(jsonPath);
+  const jsonConfig = require(jsonPath);
 
-	module.exports = {
-		database: env('DATABASE', jsonConfig.database),
-		host: env('HOST', jsonConfig.host),
-		port: Number(env('PORT', jsonConfig.port)),
-		cron: env('CRON', jsonConfig.cron),
-		chromeLaunchConfig: jsonConfig.chromeLaunchConfig || {},
-		numWorkers: jsonConfig.numWorkers || 2
-	};
+  module.exports = {
+    database_url: env('DATABASE_URL', jsonConfig.database_url),
+    database: env('DATABASE', jsonConfig.database),
+    host: env('HOST', jsonConfig.host),
+    port: Number(env('PORT', jsonConfig.port)),
+    cron: env('CRON', jsonConfig.cron),
+    chromeLaunchConfig: jsonConfig.chromeLaunchConfig || {},
+    numWorkers: jsonConfig.numWorkers || 2
+  };
 } else {
-	module.exports = {
-		database: env('DATABASE', 'mongodb://localhost/pa11y-webservice'),
-		host: env('HOST', '0.0.0.0'),
-		port: Number(env('PORT', '3000')),
-		cron: env('CRON', false),
-		chromeLaunchConfig: {},
-		numWorkers: Number(env('NUM_WORKERS', '2'))
-	};
+  module.exports = {
+    database_url: env('DATABASE_URL', 'mongodb://localhost'),
+    database: env('DATABASE', 'pa11y-webservice'),
+    host: env('HOST', '0.0.0.0'),
+    port: Number(env('PORT', '3000')),
+    cron: env('CRON', false),
+    chromeLaunchConfig: {},
+    numWorkers: Number(env('NUM_WORKERS', '2'))
+  };
 }
 
 function env(name, defaultValue) {
-	const value = process.env[name];
-	return (typeof value === 'string' ? value : defaultValue);
+  const value = process.env[name];
+  return (typeof value === 'string' ? value : defaultValue);
 }
