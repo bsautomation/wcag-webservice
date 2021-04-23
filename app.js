@@ -66,6 +66,20 @@ function initApp(config, callback) {
     },
 
     next => {
+      require('./model/browserstack/task')(app, (error, model) => {
+        app.model.bstack_task = model;
+        next(error);
+      });
+    },
+
+    next => {
+      require('./model/browserstack/task')(app, (error, model) => {
+        app.model.bstack_result = model;
+        next(error);
+      });
+    },
+
+    next => {
       require('./model/task')(app, (error, model) => {
         app.model.task = model;
         next(error);
@@ -87,14 +101,18 @@ function initApp(config, callback) {
       require('./route/index')(app);
       require('./route/tasks')(app);
       require('./route/task')(app);
-      require('./route/browserstack')(app);
+      require('./route/browserstack/task')(app);
+      require('./route/browserstack/api')(app);
+      require('./route/browserstack/download')(app);
 
       app.server.start()
         .then(
           () => next(),
           error => next(error)
         );
-
+      app.server.events.on('response', function (request) {
+        console.log(request.info.remoteAddress + ': ' + request.method.toUpperCase() + ' ' + request.path + ' --> ' + request.response.statusCode);
+      });
       console.log(`Server running at: ${app.server.info.uri}`);
     }
 

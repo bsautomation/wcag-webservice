@@ -25,10 +25,12 @@ const pa11y = require('pa11y');
 // Task model
 module.exports = function(app, callback) {
   app.db.collection('tasks', function(errors, collection) {
-    collection.ensureIndex({
+    collection.createIndex({
       name: 1,
       url: 1,
-      standard: 1
+      standard: 1,
+      build_no: 1,
+      module: 1
     }, {
       w: -1
     });
@@ -40,7 +42,7 @@ module.exports = function(app, callback) {
       create: function(newTask) {
         newTask.headers = model.sanitizeHeaderInput(newTask.headers);
 
-        return collection.insert(newTask)
+        return collection.insertOne(newTask)
           .then(result => {
             return model.prepareForOutput(result.ops[0]);
           })
@@ -66,6 +68,19 @@ module.exports = function(app, callback) {
           .catch(error => {
             console.error('model:task:getAll failed');
             console.error(error.message);
+          });
+      },
+
+      // Get Task by Name
+      getByName: function(payload) {
+        return collection.findOne({name: payload.name, build_no: payload.build_no, env: payload.env})
+          .then(task => {
+            return model.prepareForOutput(task);
+          })
+          .catch(error => {
+            console.error(`model:task:getByName failed, with name: ${name}`);
+            console.error(error.message);
+            return null;
           });
       },
 
@@ -237,6 +252,9 @@ module.exports = function(app, callback) {
         }
         const output = {
           id: task._id.toString(),
+          module: task.module,
+          env: task.env,
+          build_no: task.build_no,
           name: task.name,
           url: task.url,
           timeout: (task.timeout ? parseInt(task.timeout, 10) : 30000),
