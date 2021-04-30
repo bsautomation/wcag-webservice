@@ -30,14 +30,14 @@ module.exports = function(app) {
     method: 'GET',
     path: '/tasks/{id}',
     handler: async (request, reply) => {
-      const task = await model.task.getById(request.params.id);
+      const task = await model.axeTask.getById(request.params.id);
 
       if (!task) {
         return reply.response('Not Found').code(404);
       }
 
       if (request.query.lastres) {
-        const results = await model.result.getByTaskId(task.id, {
+        const results = await model.axeresult.getByTaskId(task.id, {
           limit: 1,
           full: true
         });
@@ -53,6 +53,10 @@ module.exports = function(app) {
       return reply.response(task).code(200);
     },
     options: {
+      cors: {
+        origin: ['*'],
+        additionalHeaders: ['cache-control', 'x-requested-with']
+      },
       validate: {
         query: Joi.object({
           lastres: Joi.boolean()
@@ -67,9 +71,10 @@ module.exports = function(app) {
     method: 'PATCH',
     path: '/tasks/{id}',
     handler: async (request, reply) => {
-      const task = await model.task.getById(request.params.id);
+      const task = await model.axeTask.getById(request.params.id);
 
       if (!task) {
+        console.log('task not Found')
         return reply.response('Not Found').code(404);
       }
 
@@ -80,30 +85,38 @@ module.exports = function(app) {
           }
         }
       }
-      const updateCount = await model.task.editById(task.id, request.payload);
+      const updateCount = await model.axeTask.editById(task.id, request.payload);
       if (updateCount < 1) {
         return reply.response().code(500);
       }
-      const taskAgain = await model.task.getById(task.id);
+      const taskAgain = await model.axeTask.getById(task.id);
       return reply.response(taskAgain).code(200);
     },
     options: {
+      cors: {
+        origin: ['*'],
+        additionalHeaders: ['cache-control', 'x-requested-with']
+      },
       validate: {
         query: {},
         payload: Joi.object({
+          module: Joi.string().required(),
+          env: Joi.string().required(),
           name: Joi.string().required(),
-          timeout: Joi.number().integer(),
-          wait: Joi.number().integer(),
-          ignore: Joi.array(),
-          actions: Joi.array().items(Joi.string()),
-          comment: Joi.string(),
+          url: Joi.string().required(),
+          standard: Joi.string().required().valid(
+            'Section508',
+            'WCAG2A',
+            'WCAG2AA',
+            'WCAG2AAA'
+          ),
+          timeout: Joi.string().allow(''),
+          wait: Joi.string().allow(''),
+          actions: Joi.string().allow(''),
           username: Joi.string().allow(''),
           password: Joi.string().allow(''),
-          hideElements: Joi.string().allow(''),
-          headers: [
-            Joi.string().allow(''),
-            Joi.object().pattern(/.*/, Joi.string().allow(''))
-          ]
+          headers: Joi.string().allow(''),
+          hideElements: Joi.string().allow('')
         })
       }
     }
@@ -114,18 +127,22 @@ module.exports = function(app) {
     method: 'DELETE',
     path: '/tasks/{id}',
     handler: async (request, reply) => {
-      const task = await model.task.deleteById(request.params.id);
+      const task = await model.axeTask.deleteById(request.params.id);
       if (!task) {
         return reply.response('Not Found').code(404);
       }
 
-      const removed = await model.result.deleteByTaskId(request.params.id);
+      const removed = await model.axeresult.deleteByTaskId(request.params.id);
       if (!removed) {
         return reply.response().code(500);
       }
       return reply.response().code(204);
     },
     options: {
+      cors: {
+        origin: ['*'],
+        additionalHeaders: ['cache-control', 'x-requested-with']
+      },
       validate: {
         query: {},
         payload: false
@@ -138,14 +155,14 @@ module.exports = function(app) {
     method: 'POST',
     path: '/tasks/{id}/run',
     handler: async (request, reply) => {
-      const task = await model.task.getById(request.params.id);
+      const task = await model.axeTask.getById(request.params.id);
       if (!task) {
         return reply.response('Not Found').code(404);
       }
       console.log('');
       console.log(grey('Starting to run one-off task @ %s'), new Date());
       console.log('Starting task %s', task.id);
-      const executed = await model.task.runById(request.params.id);
+      const executed = await model.axeTask.runAxeById(request.params.id);
       if (executed) {
         console.log(green('Finished task %s'), task.id);
       } else {
@@ -162,6 +179,10 @@ module.exports = function(app) {
       return reply.response().code(202);
     },
     options: {
+      cors: {
+        origin: ['*'],
+        additionalHeaders: ['cache-control', 'x-requested-with']
+      },
       validate: {
         query: {}
       }
@@ -173,18 +194,22 @@ module.exports = function(app) {
     method: 'GET',
     path: '/tasks/{id}/results',
     handler: async (request, reply) => {
-      const task = await model.task.getById(request.params.id);
+      const task = await model.axeTask.getById(request.params.id);
       if (!task) {
         return reply.response('Not Found').code(404);
       }
 
-      const results = await model.result.getByTaskId(request.params.id, request.query);
+      const results = await model.axeresult.getByTaskId(request.params.id, request.query);
       if (!results) {
         return reply.response('No results found for task').code(500);
       }
       return reply.response(results).code(200);
     },
     options: {
+      cors: {
+        origin: ['*'],
+        additionalHeaders: ['cache-control', 'x-requested-with']
+      },
       validate: {
         query: Joi.object({
           from: Joi.string().isoDate(),

@@ -61,7 +61,7 @@ module.exports = function(app) {
     handler: async (request, reply) => {
       var last_builds = parseInt(request.params.last_builds);
       const builds = await model.bstack_task.getLastBuilds(last_builds, request.query);
-      const tasks = await model.bstack_task.getTasksinBuilds(builds);
+      const tasks = await model.bstack_task.getTasksinBuilds(builds, request.query);
       for (const build of builds) {
         for (const task of tasks[build]) {
           var taskResult = await model.axeresult.getByTaskId(task['_id'], request.query);

@@ -87,6 +87,13 @@ function initApp(config, callback) {
     },
 
     next => {
+      require('./model/browserstack/axeTasks')(app, (error, model) => {
+        app.model.axeTask = model;
+        next(error);
+      });
+    },
+
+    next => {
       if (!config.dbOnly && process.env.NODE_ENV !== 'test') {
         require('./task/pa11y')(config, app);
       }
