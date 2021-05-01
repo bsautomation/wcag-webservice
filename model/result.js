@@ -23,11 +23,6 @@ const {ObjectID} = require('mongodb');
 // Result model
 module.exports = function(app, callback) {
 	app.db.collection('results', (errors, collection) => {
-		collection.ensureIndex({
-			date: 1
-		}, {
-			w: -1
-		});
 
 		const model = {
 			collection: collection,

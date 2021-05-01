@@ -48,9 +48,12 @@ module.exports = function(app, callback) {
           })
       },
 
-      getTasksinBuilds(builds){
-        var buildTasks = {};
-        return collection.find({ build_no: { $in: builds } })
+      getTasksinBuilds(builds, prams){
+        let matchQuery = { build_no: { $in: builds }, env: prams.env };
+        if (prams.module !== 'all')
+          matchQuery['module'] = prams.module
+        var buildTasks = {}
+        return collection.aggregate([{$match: matchQuery}])
           .toArray()
           .then(data => {
             let buildTasks = {};

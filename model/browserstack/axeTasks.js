@@ -21,13 +21,34 @@
 const {grey} = require('kleur');
 const {ObjectID} = require('mongodb');
 const pa11y = require('pa11y');
+const {runTest} = require('../axe/test');
 
 // Task model
 module.exports = function(app, callback) {
-  app.db.collection('tasks', function(errors, collection) {
+  app.db.collection('axeTasks', function(errors, collection) {
     const model = {
 
       collection: collection,
+
+      getEnvs() {
+        return collection.distinct('env')
+          .then(result => {
+            return result
+          })
+          .catch(error => {
+            console.error('model:browserstack:tasks:getEnvs failed', error.message);
+          });
+      },
+
+      getModules(env) {
+        return collection.distinct('module', {env: env})
+          .then(result => {
+            return result
+          })
+          .catch(error => {
+            console.error('model:browserstack:tasks:getEnvs failed', error.message);
+          });
+      },
 
       // Create a task
       create: function(newTask) {
@@ -39,6 +60,26 @@ module.exports = function(app, callback) {
           })
           .catch(error => {
             console.error('model:task:create failed');
+            console.error(error.message);
+          });
+      },
+
+      getByModule(query) {
+        let findQuery = {env: query.env}
+        if(query.module == 'all')
+          findQuery['module'] = query.module;
+
+        return collection
+          .find(findQuery)
+          .sort({
+            name: 1,
+          })
+          .toArray()
+          .then(tasks => {
+            return tasks.map(model.prepareForOutput);
+          })
+          .catch(error => {
+            console.error('model:task:getByModule failed');
             console.error(error.message);
           });
       },
@@ -64,7 +105,7 @@ module.exports = function(app, callback) {
 
       // Get Task by Name
       getByName: function(payload) {
-        return collection.findOne({name: payload.name, build_no: payload.build_no, env: payload.env})
+        return collection.findOne({name: payload.name, module: payload.module, env: payload.env})
           .then(task => {
             return model.prepareForOutput(task);
           })
@@ -124,7 +165,7 @@ module.exports = function(app, callback) {
           taskEdits.headers = model.sanitizeHeaderInput(edits.headers);
         }
 
-        return collection.update({_id: id}, {$set: taskEdits})
+        return collection.updateOne({_id: id}, {$set: taskEdits})
           .then(updateCount => {
             if (updateCount < 1) {
               return 0;
@@ -234,6 +275,60 @@ module.exports = function(app, callback) {
             console.error(error.message);
             return null;
           });
+      },
+
+      // Run a task by ID
+      runAxeById: function(id) {
+        return model.getById(id).then(async task => {
+
+          const axeResults = await runTest(task);
+
+          const results = app.model.axeresult.convertAxeResults(axeResults);
+          results.task = new ObjectID(task.id);
+          return app.model.axeresult.create(results);
+        })
+          .catch(error => {
+            console.error(`model:task:runAxeById failed, with id: ${id}`);
+            console.error(error.message);
+            return null;
+          });
+      },
+
+      prepareForData: function(payload){
+        let parsedActions;
+        if (payload.actions) {
+          parsedActions = payload.actions.split(/[\r\n]+/)
+            .map(action => {
+              return action.trim();
+            })
+            .filter(action => {
+              return Boolean(action);
+            });
+        }
+
+        let parsedHeaders;
+        if (payload.headers) {
+          parsedHeaders = httpHeaders(payload.headers, true);
+        }
+
+        const newTask = {
+          module: payload.module,
+          env: payload.env,
+          build: payload.build_no,
+          name: payload.name,
+          url: payload.url,
+          standard: payload.standard,
+          ignore: payload.ignore || [],
+          timeout: payload.timeout || undefined,
+          wait: payload.wait || undefined,
+          actions: parsedActions,
+          username: payload.username || undefined,
+          password: payload.password || undefined,
+          headers: parsedHeaders,
+          hideElements: payload.hideElements || undefined
+        };
+
+        return newTask;
       },
 
       // Prepare a task for output

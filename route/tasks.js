@@ -25,18 +25,67 @@ module.exports = function(app) {
   const model = app.model;
   const server = app.server;
 
+   // Get Task by id
+  server.route({
+    method: 'GET',
+    path: '/api/envs',
+    handler: async (request, reply) => {
+      const envs = await model.axeTask.getEnvs();
+
+      return reply.response(envs).code(200);
+    },
+    options: {
+      cors: {
+        origin: ['*'],
+        additionalHeaders: ['cache-control', 'x-requested-with']
+      },
+      validate: {
+        query: Joi.object({
+          lastres: Joi.boolean()
+        }),
+        payload: false
+      }
+    }
+  });
+
+  server.route({
+    method: 'GET',
+    path: '/api/modules',
+    handler: async (request, reply) => {
+      const envs = await model.axeTask.getModules(request.query.env);
+
+      return reply.response(envs).code(200);
+    },
+    options: {
+      cors: {
+        origin: ['*'],
+        additionalHeaders: ['cache-control', 'x-requested-with']
+      },
+      validate: {
+        query: Joi.object({
+          env: Joi.string().required()
+        }),
+        payload: false
+      }
+    }
+  });
+
   // Get all tasks
   server.route({
     method: 'GET',
     path: '/tasks',
     handler: async (request, reply) => {
-      let tasks = await model.task.getAll();
+      let tasks = await model.axeTask.getByModule(request.query);
 
       if (!tasks) {
         return reply.response().code(500);
       }
+
+      let taskIds = []
+      tasks.map(taskData => taskIds.push(taskData.id))
+
       if (request.query.lastres) {
-        const results = await model.result.getAll({});
+        const results = await model.axeresult.getByTaskIds(taskIds, request.query);
         if (!results) {
           return reply.response().code(500);
         }
@@ -54,9 +103,15 @@ module.exports = function(app) {
       return reply.response(tasks).code(200);
     },
     options: {
+      cors: {
+        origin: ['*'],
+        additionalHeaders: ['cache-control', 'x-requested-with']
+      },
       validate: {
         query: Joi.object({
-          lastres: Joi.boolean()
+          lastres: Joi.boolean(),
+          env: Joi.string().required(),
+          module: Joi.string().required()
         }),
         payload: false
       }
@@ -75,8 +130,13 @@ module.exports = function(app) {
           }
         }
       }
-      console.log(request.payload);
-      const task = await model.task.create(request.payload);
+
+      const existingTask = await model.axeTask.getByName(request.payload);
+      if (existingTask !== null)
+        return reply.response({id: existingTask.id, success: false, message: 'Task is already present with same name'}).code(200);
+
+      const taskData = await model.axeTask.prepareForData(request.payload);
+      const task = await model.axeTask.create(taskData);
 
       if (!task) {
         return reply.response().code(500);
@@ -87,32 +147,30 @@ module.exports = function(app) {
         .code(201);
     },
     options: {
+      cors: {
+        origin: ['*'],
+        additionalHeaders: ['cache-control', 'x-requested-with']
+      },
       validate: {
         query: {},
         payload: Joi.object({
           module: Joi.string().required(),
-          build_no: Joi.number().integer(),
           env: Joi.string().required(),
           name: Joi.string().required(),
-          functionality: Joi.string().allow(''),
-          timeout: Joi.number().integer(),
-          wait: Joi.number().integer(),
           url: Joi.string().required(),
-          username: Joi.string().allow(''),
-          password: Joi.string().allow(''),
           standard: Joi.string().required().valid(
             'Section508',
             'WCAG2A',
             'WCAG2AA',
             'WCAG2AAA'
           ),
-          ignore: Joi.array(),
-          actions: Joi.array().items(Joi.string()),
-          hideElements: Joi.string().allow(''),
-          headers: [
-            Joi.string().allow(''),
-            Joi.object().pattern(/.*/, Joi.string().allow(''))
-          ]
+          timeout: Joi.string().allow(''),
+          wait: Joi.string().allow(''),
+          actions: Joi.string().allow(''),
+          username: Joi.string().allow(''),
+          password: Joi.string().allow(''),
+          headers: Joi.string().allow(''),
+          hideElements: Joi.string().allow('')
         })
       }
     }

@@ -8,12 +8,6 @@ const {ObjectID} = require('mongodb');
 // Result model
 module.exports = function(app, callback) {
   app.db.collection('axeResults', (errors, collection) => {
-    collection.ensureIndex({
-      date: 1,
-      task: 1
-    }, {
-      w: -1
-    });
 
     const model = {
       collection: collection,
@@ -41,7 +35,8 @@ module.exports = function(app, callback) {
           from: (new Date(opts.from || thirtyDaysAgo)).getTime(),
           to: (new Date(opts.to || now)).getTime(),
           full: Boolean(opts.full),
-          task: opts.task
+          task: opts.task,
+          tasks: opts.tasks
         };
       },
 
@@ -56,6 +51,12 @@ module.exports = function(app, callback) {
         };
         if (opts.task) {
           filter.task = new ObjectID(opts.task);
+        }
+
+        if(opts.tasks){
+          let taskIds = []
+          opts.tasks.map(ids => taskIds.push(new ObjectID(ids)));
+          filter.task = { "$in": taskIds}
         }
 
         const prepare = opts.full ? model.prepareForFullOutput : model.prepareForOutput;
@@ -103,6 +104,11 @@ module.exports = function(app, callback) {
       // Get results for a single task
       getByTaskId(id, opts) {
         opts.task = id;
+        return model._getFiltered(opts);
+      },
+
+      getByTaskIds(ids, opts) {
+        opts.tasks = ids;
         return model._getFiltered(opts);
       },
 
