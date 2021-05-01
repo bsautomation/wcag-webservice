@@ -25,18 +25,67 @@ module.exports = function(app) {
   const model = app.model;
   const server = app.server;
 
+   // Get Task by id
+  server.route({
+    method: 'GET',
+    path: '/api/envs',
+    handler: async (request, reply) => {
+      const envs = await model.axeTask.getEnvs();
+
+      return reply.response(envs).code(200);
+    },
+    options: {
+      cors: {
+        origin: ['*'],
+        additionalHeaders: ['cache-control', 'x-requested-with']
+      },
+      validate: {
+        query: Joi.object({
+          lastres: Joi.boolean()
+        }),
+        payload: false
+      }
+    }
+  });
+
+  server.route({
+    method: 'GET',
+    path: '/api/modules',
+    handler: async (request, reply) => {
+      const envs = await model.axeTask.getModules(request.query.env);
+
+      return reply.response(envs).code(200);
+    },
+    options: {
+      cors: {
+        origin: ['*'],
+        additionalHeaders: ['cache-control', 'x-requested-with']
+      },
+      validate: {
+        query: Joi.object({
+          env: Joi.string().required()
+        }),
+        payload: false
+      }
+    }
+  });
+
   // Get all tasks
   server.route({
     method: 'GET',
     path: '/tasks',
     handler: async (request, reply) => {
-      let tasks = await model.task.getAll();
+      let tasks = await model.axeTask.getByModule(request.query);
 
       if (!tasks) {
         return reply.response().code(500);
       }
+
+      let taskIds = []
+      tasks.map(taskData => taskIds.push(taskData.id))
+
       if (request.query.lastres) {
-        const results = await model.result.getAll({});
+        const results = await model.axeresult.getByTaskIds(taskIds, request.query);
         if (!results) {
           return reply.response().code(500);
         }
@@ -54,9 +103,15 @@ module.exports = function(app) {
       return reply.response(tasks).code(200);
     },
     options: {
+      cors: {
+        origin: ['*'],
+        additionalHeaders: ['cache-control', 'x-requested-with']
+      },
       validate: {
         query: Joi.object({
-          lastres: Joi.boolean()
+          lastres: Joi.boolean(),
+          env: Joi.string().required(),
+          module: Joi.string().required()
         }),
         payload: false
       }

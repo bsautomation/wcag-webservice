@@ -30,6 +30,26 @@ module.exports = function(app, callback) {
 
       collection: collection,
 
+      getEnvs() {
+        return collection.distinct('env')
+          .then(result => {
+            return result
+          })
+          .catch(error => {
+            console.error('model:browserstack:tasks:getEnvs failed', error.message);
+          });
+      },
+
+      getModules(env) {
+        return collection.distinct('module', {env: env})
+          .then(result => {
+            return result
+          })
+          .catch(error => {
+            console.error('model:browserstack:tasks:getEnvs failed', error.message);
+          });
+      },
+
       // Create a task
       create: function(newTask) {
         newTask.headers = model.sanitizeHeaderInput(newTask.headers);
@@ -40,6 +60,26 @@ module.exports = function(app, callback) {
           })
           .catch(error => {
             console.error('model:task:create failed');
+            console.error(error.message);
+          });
+      },
+
+      getByModule(query) {
+        let findQuery = {env: query.env}
+        if(query.module == 'all')
+          findQuery['module'] = query.module;
+
+        return collection
+          .find(findQuery)
+          .sort({
+            name: 1,
+          })
+          .toArray()
+          .then(tasks => {
+            return tasks.map(model.prepareForOutput);
+          })
+          .catch(error => {
+            console.error('model:task:getByModule failed');
             console.error(error.message);
           });
       },
