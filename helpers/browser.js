@@ -3,7 +3,7 @@ function isCurrentUserRoot() {
   return process.getuid() == 0;
 }
 const withBrowser = async (fn) => {
-  const browser = await puppeteer.launch({ headless: true, args: isCurrentUserRoot() ? ['--no-sandbox', '--start-maximized'] : ['--start-maximized'] });
+  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--start-maximized']});
   try {
     return await fn(browser);
   } finally {
