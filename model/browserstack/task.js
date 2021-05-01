@@ -36,7 +36,7 @@ module.exports = function(app, callback) {
       getLastBuilds(limit, query){
         var builds = [];
         let matchQuery = { "env": query.env};
-        if (query.module !== 'all')
+        if (query.module != 'all')
           matchQuery['module'] = query.module
 
         return collection.aggregate([{$match: matchQuery}, {$group:{_id:'$build_no'}}, 
@@ -50,7 +50,7 @@ module.exports = function(app, callback) {
 
       getTasksinBuilds(builds, prams){
         let matchQuery = { build_no: { $in: builds }, env: prams.env };
-        if (prams.module !== 'all')
+        if (prams.module != 'all')
           matchQuery['module'] = prams.module
         var buildTasks = {}
         return collection.aggregate([{$match: matchQuery}])
@@ -70,7 +70,7 @@ module.exports = function(app, callback) {
 
       getTaskinBuild(query){
         let andQuery = {build_no: parseInt(query.build_no), env: query.env}
-        if (query.module !== 'all')
+        if (query.module != 'all')
           andQuery['module'] = query.module
         return collection.find({ $and: [ andQuery ]})
           .toArray()
@@ -82,7 +82,7 @@ module.exports = function(app, callback) {
       getTasksfromName(builds, query){
         var buildTasks = {};
         let andQuery = {build_no: { $in: builds }, env: query.env, name: query.name}
-        if (query.module !== 'all')
+        if (query.module != 'all')
           andQuery['module'] = query.module
         return collection.find({ $and: [ andQuery ]})
           .toArray()

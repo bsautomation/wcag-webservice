@@ -66,7 +66,7 @@ module.exports = function(app, callback) {
 
       getByModule(query) {
         let findQuery = {env: query.env}
-        if(query.module == 'all')
+        if(query.module != 'all')
           findQuery['module'] = query.module;
 
         return collection
