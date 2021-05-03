@@ -1,4 +1,4 @@
-const {withBrowser, withPage} = require('../../helpers/browser');
+const {withBrowser, withPage, addAction} = require('../../helpers/browser');
 const axe = require('axe-core');
 const NAVIGATION_TIMEOUT = 30000;
 
@@ -9,6 +9,7 @@ const runTest = async (task) => {
       await page.setDefaultNavigationTimeout(task.timeout ? task.timeout : NAVIGATION_TIMEOUT);
       await page.setViewport({ width: 1366, height: 768});
       await page.goto(task.url);
+      await addAction(browser, page, task);
       let title = await page.title();
       await page.addScriptTag({
         path: require.resolve('axe-core')

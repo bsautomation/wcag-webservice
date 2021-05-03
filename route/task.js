@@ -72,20 +72,21 @@ module.exports = function(app) {
     path: '/tasks/{id}',
     handler: async (request, reply) => {
       const task = await model.axeTask.getById(request.params.id);
+      const taskData = await model.axeTask.prepareForData(request.payload);
 
       if (!task) {
         console.log('task not Found')
         return reply.response('Not Found').code(404);
       }
 
-      if (request.payload.actions && request.payload.actions.length) {
-        for (let action of request.payload.actions) {
+      if (taskData.actions && taskData.actions.length) {
+        for (let action of taskData.actions) {
           if (!isValidAction(action)) {
             return reply.response(`Invalid action: "${action}"`).code(400);
           }
         }
       }
-      const updateCount = await model.axeTask.editById(task.id, request.payload);
+      const updateCount = await model.axeTask.editById(task.id, taskData);
       if (updateCount < 1) {
         return reply.response().code(500);
       }

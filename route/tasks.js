@@ -123,9 +123,12 @@ module.exports = function(app) {
     method: 'POST',
     path: '/tasks',
     handler: async (request, reply) => {
-      if (request.payload.actions && request.payload.actions.length) {
-        for (let action of request.payload.actions) {
+      const taskData = await model.axeTask.prepareForData(request.payload);
+
+      if (taskData.actions && taskData.actions.length) {
+        for (let action of taskData.actions) {
           if (!isValidAction(action)) {
+            console.log(`Invalid action: "${action}"`)
             return reply.response(`Invalid action: "${action}"`).code(400);
           }
         }
@@ -135,7 +138,6 @@ module.exports = function(app) {
       if (existingTask !== null)
         return reply.response({id: existingTask.id, success: false, message: 'Task is already present with same name'}).code(200);
 
-      const taskData = await model.axeTask.prepareForData(request.payload);
       const task = await model.axeTask.create(taskData);
 
       if (!task) {
