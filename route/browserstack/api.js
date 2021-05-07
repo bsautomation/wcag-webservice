@@ -59,17 +59,19 @@ module.exports = function(app) {
     method: 'GET',
     path: '/bstack/api/module/results/{last_builds}',
     handler: async (request, reply) => {
-      var last_builds = parseInt(request.params.last_builds);
+      var last_builds = request.query.lastres ? 1 : parseInt(request.params.last_builds);
       const builds = await model.bstack_task.getLastBuilds(last_builds, request.query);
       const tasks = await model.bstack_task.getTasksinBuilds(builds, request.query);
+      var total_failures = 0;
       for (const build of builds) {
         for (const task of tasks[build]) {
           var taskResult = await model.axeresult.getByTaskId(task['_id'], request.query);
           task.results = taskResult;
+          total_failures = total_failures + taskResult[0].count.total;
         }
       }
 
-      return reply.response({builds, tasks}).code(200);
+      return reply.response({builds, tasks, total_failures}).code(200);
     },
     options: {
       cors: {
@@ -79,7 +81,8 @@ module.exports = function(app) {
       validate: {
         query: Joi.object({
           module: Joi.string().required(),
-          env: Joi.string().required()
+          env: Joi.string().required(),
+          lasters: Joi.boolean()
         }),
         payload: false
       }
