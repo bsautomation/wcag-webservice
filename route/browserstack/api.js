@@ -59,7 +59,7 @@ module.exports = function(app) {
     method: 'GET',
     path: '/bstack/api/module/results/{last_builds}',
     handler: async (request, reply) => {
-      var last_builds = request.query.lastres ? 1 : parseInt(request.params.last_builds);
+      var last_builds = request.query.lasters ? 1 : parseInt(request.params.last_builds);
       const builds = await model.bstack_task.getLastBuilds(last_builds, request.query);
       const tasks = await model.bstack_task.getTasksinBuilds(builds, request.query);
       var total_failures = 0;
@@ -70,7 +70,8 @@ module.exports = function(app) {
           total_failures = total_failures + taskResult[0].count.total;
         }
       }
-      const responseJson = request.query.lastres ? {total_failures} : {builds, tasks, total_failures};
+
+      const responseJson = request.query.lasters ? {total_failures} : {builds, tasks, total_failures};
       return reply.response(responseJson).code(200);
     },
     options: {
