@@ -70,8 +70,8 @@ module.exports = function(app) {
           total_failures = total_failures + taskResult[0].count.total;
         }
       }
-
-      return reply.response({builds, tasks, total_failures}).code(200);
+      const responseJson = request.query.lastres ? {total_failures} : {builds, tasks, total_failures};
+      return reply.response(responseJson).code(200);
     },
     options: {
       cors: {
