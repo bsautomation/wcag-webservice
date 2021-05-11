@@ -19,7 +19,7 @@ const runTest = async (task) => {
                       {
                         runOnly: {
                           type: 'tag',
-                          values: ['wcag2a', 'wcag2aa', 'best-practice']
+                          values: ['wcag2a', 'wcag2aa']
                         }
                       });
       });
