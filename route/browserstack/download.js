@@ -1,10 +1,7 @@
 /* eslint camelcase: 'off' */
 'use strict';
 
-const {green, grey, red} = require('kleur');
 const Joi = require('@hapi/joi');
-const Hapi = require('@hapi/hapi');
-const json2csv = require('json2csv');
 
 module.exports = function(app) {
   const model = app.model;
