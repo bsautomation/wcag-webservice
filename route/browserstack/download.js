@@ -13,23 +13,27 @@ module.exports = function(app) {
   function convertToCSV(data){
     var rows = ['"name","url","code","impact","message","selector","source"'];
     data.forEach(task => {
-      let results = task.results[0].results[0]
-      Object.keys(results).forEach(impact => {
-        results[impact].forEach(failure => {
-          let target = []; let source = [];
-          failure.nodes.filter(node => target.push(node.html.replace(/(\r\n|\n|\r)/gm," ")));
-          failure.nodes.filter(node => source.push(node.target.replace(/(\r\n|\n|\r)/gm," ")));
-          rows.push([
-            task.name.replace(/,/gm, ';'),
-            task.url,
-            failure.id,
-            failure.impact,
-            failure.help + ' (' + failure.helpUrl + ')',
-            target.join("; "),
-            source.join("; "),
-          ].join(','));
+      let results = task.results.length == 0 ? undefined : task.results[0].results[0];
+      if (results){
+        Object.keys(results).forEach(impact => {
+          results[impact].forEach(failure => {
+            let target = []; let source = [];
+            failure.nodes.filter(node => target.push(node.html.replace(/(\r\n|\n|\r)/gm," ")));
+            failure.nodes.filter(node => source.push(node.target.replace(/(\r\n|\n|\r)/gm," ")));
+            rows.push([
+              task.name.replace(/,/gm, ';'),
+              task.url,
+              failure.id,
+              failure.impact,
+              failure.help + ' (' + failure.helpUrl + ')',
+              target.join("; "),
+              source.join("; "),
+            ].join(','));
+          })
         })
-      })
+      }else{
+        return undefined;
+      }
     })
     return rows;
   }
@@ -46,8 +50,11 @@ module.exports = function(app) {
         task.results = taskResult;
       }
       var csv = convertToCSV(tasks); 
-      return reply.response(csv.join('\n')).header('Content-Type', 'application/octet-stream')
+      if (csv)
+        return reply.response(csv.join('\n')).header('Content-Type', 'application/octet-stream')
                 .header('content-disposition', 'attachment; filename=' + name + ';').code(200);
+      else
+        return reply.response({error: "No data present for current configuration or something went wrong"}).code(200);
     },
     options: {
       cors: {
