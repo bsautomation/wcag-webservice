@@ -67,7 +67,7 @@ module.exports = function(app) {
         for (const task of tasks[build]) {
           var taskResult = await model.axeresult.getByTaskId(task['_id'], request.query);
           task.results = taskResult;
-          total_failures = total_failures + taskResult[0] ? taskResult[0].count.total : 0;
+          total_failures = total_failures + taskResult[0].count.total;
         }
       }
 
@@ -129,11 +129,10 @@ module.exports = function(app) {
       for (const task of tasks) {
         var taskResult = await model.axeresult.getByTaskId(task['_id'], request.query);
         task.results = taskResult;
-        console.log(taskResult[0].count);
-        total_failures = total_failures + taskResult[0] ? taskResult[0].count.total : 0;
+        total_failures = total_failures + taskResult[0].count.total;
       }
 
-      return reply.response({total_failures, results: tasks.results}).code(200);
+      return reply.response({total_failures}).code(200);
     },
     options: {
       cors: {
