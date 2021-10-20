@@ -67,7 +67,7 @@ module.exports = function(app) {
         for (const task of tasks[build]) {
           var taskResult = await model.axeresult.getByTaskId(task['_id'], request.query);
           task.results = taskResult;
-          total_failures = total_failures + taskResult[0].count.total;
+          total_failures = total_failures + taskResult[0] ? taskResult[0].count.total : 0;
         }
       }
 
@@ -102,6 +102,37 @@ module.exports = function(app) {
       }
 
       return reply.response(tasks).code(200);
+    },
+    options: {
+      cors: {
+        origin: ['*'],
+        additionalHeaders: ['cache-control', 'x-requested-with']
+      },
+      validate: {
+        query: Joi.object({
+          module: Joi.string().required(),
+          env: Joi.string().required(),
+          build_no: Joi.string().required()
+        }),
+        payload: false
+      }
+    }
+  });
+
+  server.route({
+    method: 'GET',
+    path: '/bstack/api/build/results',
+    handler: async (request, reply) => {
+      const tasks = await model.bstack_task.getTaskinBuild(request.query);
+      request.query.full = true;
+      var total_failures = 0;
+      for (const task of tasks) {
+        var taskResult = await model.axeresult.getByTaskId(task['_id'], request.query);
+        task.results = taskResult;
+        total_failures = total_failures + taskResult[0] ? taskResult[0].count.total : 0;
+      }
+
+      return reply.response({total_failures, results: tasks.results}).code(200);
     },
     options: {
       cors: {
