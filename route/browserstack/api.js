@@ -126,13 +126,18 @@ module.exports = function(app) {
       const tasks = await model.bstack_task.getTaskinBuild(request.query);
       request.query.full = true;
       var total_failures = 0;
+      var result = {};
       for (const task of tasks) {
         var taskResult = await model.axeresult.getByTaskId(task['_id'], request.query);
-        task.results = taskResult;
+        if (result[task.module]) {
+          result[task.module] = result[task.module] + taskResult[0].count.total
+        }else{
+          result[task.module] = taskResult[0].count.total
+        }
         total_failures = total_failures + taskResult[0].count.total;
       }
 
-      return reply.response({total_failures}).code(200);
+      return reply.response({total_failures, result}).code(200);
     },
     options: {
       cors: {
