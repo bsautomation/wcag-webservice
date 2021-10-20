@@ -129,6 +129,7 @@ module.exports = function(app) {
       for (const task of tasks) {
         var taskResult = await model.axeresult.getByTaskId(task['_id'], request.query);
         task.results = taskResult;
+        console.log(taskResult[0].count);
         total_failures = total_failures + taskResult[0] ? taskResult[0].count.total : 0;
       }
 
