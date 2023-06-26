@@ -1,6 +1,8 @@
 # Wcag Webservice
 ---
 
+### Note - Application code has been moved to qa-components repo - https://github.com/browserstack/qa-components/tree/main/wcag-webservice
+
 ## Setup
 
 In order to run Pa11y Webservice, we recommend cloning this repository locally:
